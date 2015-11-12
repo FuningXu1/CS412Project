@@ -51,8 +51,8 @@ class DecisionTree():
         return int(value) if value else 0
 
 if __name__ == "__main__":
-    inputFilePath = 'localData/features_ed.csv'
-    outputFilePath = 'localData/submission.csv'
+    inputFilePath = 'localData/features_test.csv'
+    outputFilePath = 'outcome_j48weka.csv'
     decisionTree = DecisionTree()
 
     with open(inputFilePath, newline='') as inputCsvFile:
