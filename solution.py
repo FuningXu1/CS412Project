@@ -1,11 +1,12 @@
 # all the data files should be put under the folder localData/
 import csv
+import warnings
 from sklearn.naive_bayes import GaussianNB, BernoulliNB
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 
 class FileReader():
-    def read_file(self, filename):
+    def read_file(self, filename, selectedFeatures):
         with open(filename, newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',', quotechar='|')
             is_header = True
@@ -17,8 +18,10 @@ class FileReader():
                     is_header = False
                 else:
                     ids.append(row[1])
-                    result.append((self.process_row_with_selected_features(row)))
-                    #result.append((self.process_row(row)))
+                    if selectedFeatures:
+                        result.append((self.process_row_with_selected_features(row)))
+                    else:
+                        result.append((self.process_row(row)))
                     if filename == 'localData/features_train.csv':
                         outcome.append(int(row[2]))
         return (ids, result, outcome)
@@ -72,38 +75,51 @@ class Classifier():
         neigh.fit(train_rows, train_outcome)
         return neigh.predict(test_rows)
 
+class Solution():
+    def run(self, selectedFeatures):
+        fileReader = FileReader()
+        (train_ids, train_rows, train_outcome) = fileReader.read_file('localData/features_train.csv', selectedFeatures)
+        (test_ids, test_rows, test_outcome) = fileReader.read_file('localData/features_test.csv', selectedFeatures)
+
+        classifier = Classifier()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            gnbPredictions = classifier.gaussianNB(train_rows, train_outcome, test_rows)
+            bnbPredictions = classifier.bernoulliNB(train_rows, train_outcome, test_rows)
+            rfcPredictions = classifier.randomForestClassifier(train_rows, train_outcome, test_rows)
+            kncPredictions = classifier.kNeighborsClassifier(train_rows, train_outcome, test_rows)
+
+        # write to file
+        if selectedFeatures:
+            fileSuffix = "selected"
+        else:
+            fileSuffix = "all"
+
+        with open('outcome_gaussian_naive_bayes_' + fileSuffix + '.csv', 'w+') as f:
+            f.write('bidder_id,prediction\n')
+            count = 0
+            for index, prediction in enumerate(gnbPredictions):
+                f.write(test_ids[index] + ',' + str(float(prediction)) + '\n')
+
+        with open('outcome_bernoulli_naive_bayes_' + fileSuffix + '.csv', 'w+') as f:
+            f.write('bidder_id,prediction\n')
+            count = 0
+            for index, prediction in enumerate(bnbPredictions):
+                f.write(test_ids[index] + ',' + str(float(prediction)) + '\n')
+
+        with open('outcome_random_forest_' + fileSuffix + '.csv', 'w+') as f:
+            f.write('bidder_id,prediction\n')
+            count = 0
+            for index, prediction in enumerate(rfcPredictions):
+                f.write(test_ids[index] + ',' + str(float(prediction)) + '\n')
+
+        with open('outcome_k_neighbors_' + fileSuffix + '.csv', 'w+') as f:
+            f.write('bidder_id,prediction\n')
+            count = 0
+            for index, prediction in enumerate(kncPredictions):
+                f.write(test_ids[index] + ',' + str(float(prediction)) + '\n')
+
 if __name__ == "__main__":
-    fileReader = FileReader()
-    (train_ids, train_rows, train_outcome) = fileReader.read_file('localData/features_train.csv')
-    (test_ids, test_rows, test_outcome) = fileReader.read_file('localData/features_test.csv')
-
-    classifier = Classifier()
-    gnbPredictions = classifier.gaussianNB(train_rows, train_outcome, test_rows)
-    bnbPredictions = classifier.bernoulliNB(train_rows, train_outcome, test_rows)
-    rfcPredictions = classifier.randomForestClassifier(train_rows, train_outcome, test_rows)
-    kncPredictions = classifier.kNeighborsClassifier(train_rows, train_outcome, test_rows)
-
-    # write to file
-    with open('outcome_gaussian_naive_bayes.csv', 'w+') as f:
-        f.write('bidder_id,prediction\n')
-        count = 0
-        for index, prediction in enumerate(gnbPredictions):
-            f.write(test_ids[index] + ',' + str(float(prediction)) + '\n')
-
-    with open('outcome_bernoulli_naive_bayes.csv', 'w+') as f:
-        f.write('bidder_id,prediction\n')
-        count = 0
-        for index, prediction in enumerate(bnbPredictions):
-            f.write(test_ids[index] + ',' + str(float(prediction)) + '\n')
-
-    with open('outcome_random_forest.csv', 'w+') as f:
-        f.write('bidder_id,prediction\n')
-        count = 0
-        for index, prediction in enumerate(rfcPredictions):
-            f.write(test_ids[index] + ',' + str(float(prediction)) + '\n')
-
-    with open('outcome_k_neighbors.csv', 'w+') as f:
-        f.write('bidder_id,prediction\n')
-        count = 0
-        for index, prediction in enumerate(kncPredictions):
-            f.write(test_ids[index] + ',' + str(float(prediction)) + '\n')
+    solution = Solution()
+    solution.run(False)
+    solution.run(True)
