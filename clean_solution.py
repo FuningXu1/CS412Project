@@ -70,7 +70,6 @@ def data_cleaning(file_path):
     features.drop(features[features.outcome >= 0][features.n_bids.isnull()].index, inplace=True)
     features = features.fillna(method='pad')
     features = features.fillna(method='backfill')
-    features.sort_index(inplace=True)
     features = features.fillna(0)
 
     features = features.drop('most_common_country', 1)
@@ -101,7 +100,7 @@ class RandomForestClassifierTest:
 
     def __init__(self, n_estimators=10):
         self.n_estimators = n_estimators
-        self.criterion = "entropy"
+        self.criterion = "gini"
         # construct base estimator as decision tree classifer
         self.base_estimator = DecisionTreeClassifier(criterion=self.criterion)
         self.estimator_params=()
@@ -202,4 +201,4 @@ def predict(num_of_classifers, classifer, train_feature, train_outcome, test_fea
 if __name__ == "__main__":
     file_path = '/Users/Xu/PycharmProjects/untitled/localData/'
     train_feature, train_outcome, test_feature, output = data_cleaning(file_path)
-    predict(5, RandomForestClassifierTest(n_estimators=800), train_feature, train_outcome, test_feature, output)
+    predict(5, RandomForestClassifierTest(n_estimators=100), train_feature, train_outcome, test_feature, output)
