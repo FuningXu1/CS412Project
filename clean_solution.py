@@ -100,7 +100,7 @@ class RandomForestClassifierTest:
 
     def __init__(self, n_estimators=10):
         self.n_estimators = n_estimators
-        self.criterion = "gini"
+        self.criterion = "entropy"
         # construct base estimator as decision tree classifer
         self.base_estimator = DecisionTreeClassifier(criterion=self.criterion)
         self.estimator_params=()
