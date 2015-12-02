@@ -1,8 +1,14 @@
-# CS412Project
+WARNING
+This code requires Scikit-Learn library (and other libraries Scikit-Learn requires) installed.
 
-Online csv-arff converter: http://ikuz.eu/csv2arff/
-
-Or if you can run java, you can do the following in the command line:
-java -cp /path/to/weka.jar weka.core.converters.CSVLoader filename.csv > filename.arff
-
-I was having issues when converting to arff, apparently it was because towards the end, some rows have empty values in the last few columns. I just replace those missing values with 0s, but not sure if that's the right way to do it.
+INSTRUCTIONS
+1. Unzip source_code_python.zip
+2. Using command line, navigate to the source code directory where clean_solution.py resides.
+3. Open clean_solution.py and update the absolute file path to the localData folder in line 293.
+	* Please use slash (/) instead of back-slash.
+	* Please ensure there is a slash at the end of the path (after localData).
+4. Type the following commands to run clean_solution. Ignore any warnings and wait until the program finishes running (it might take some time).
+	Python clean_solution.py
+5. The outcome files are generated in the localData folder.
+	prediction_random_forest.csv
+	prediction_adaboost.csv
