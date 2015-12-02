@@ -1,8 +1,10 @@
+import warnings
 import pandas as pd
 import numpy as np
 from collections import Counter
 import sklearn.preprocessing as preprocessing
 from sklearn.tree import DecisionTreeClassifier # base estimator
+from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.base import clone
 
 
@@ -105,13 +107,6 @@ class RandomForestClassifierTest:
         self.base_estimator = DecisionTreeClassifier(criterion=self.criterion)
         self.estimator_params=()
 
-    # function to calculate entropy
-    def entropy(self, data):
-        value = Counter([b for _, b in data]).values()
-        sum_value = float(sum(value))
-        d = np.array(value) / sum_value
-        return - sum(d * np.log(d))
-
     # function to fit the training data
     def fit(self, X, y):
         '''
@@ -177,7 +172,103 @@ class RandomForestClassifierTest:
 
         return estimator
 
-def predict(num_of_classifers, classifer, train_feature, train_outcome, test_feature, output):
+class AdaboostClassifier:
+
+    def __init__(self, max_run=10):
+        self.max_run = max_run
+        # construct base estimator as decision tree classifer
+        self.base_classifier = ExtraTreesClassifier(n_estimators=50, criterion="entropy")
+        #self.base_classifier = RandomForestClassifier(n_estimators=10, criterion="entropy")
+        self.base_classifiers = []
+
+    # function to fit the training data
+    def fit(self, X, y):
+        '''
+        X : training data feature matrix
+        y : outcome column
+        '''
+
+        # initialize sample weights to 1 / row count
+        row_count = len(y)
+        weights = np.empty(row_count)
+        weights.fill(1.0 / row_count)
+
+        for i in range (0, self.max_run):
+            # train the base classifier
+            classifier = clone(self.base_classifier)
+            classifier.fit(X, y, sample_weight = weights)
+
+            # calculate error rate (sum of sample weights from all incorrect predictions)
+            train_result = classifier.predict(X)
+            incorrect_count = 0
+            error_rate = 0
+            for j in range(0, len(train_result)):
+                actual = y[j]
+                weight = weights[j]
+                if actual != train_result[j]:
+                    error_rate += weight
+                    incorrect_count += 1
+
+            # calculate new sample weights
+            # only update weight for correct predictions
+            # keep the same weight for incorrect predictions
+            sum_new_weights = 0
+            for j in range(0, len(train_result)):
+                actual = y[j]
+                weight = weights[j]
+                if actual == train_result[j]:
+                    weight *= (error_rate / (1 - error_rate))
+                    weights[j] = weight
+                sum_new_weights += weight
+
+            # normalize new sample weights
+            for j in range(0, len(weights)):
+                weights[j] /= sum_new_weights
+
+            # calculate classifier weight
+            classifier_weight = np.log((1 - error_rate) / error_rate)
+
+            # save classifier info for later use
+            self.base_classifiers.append({'classifier': classifier, 'weight': classifier_weight})
+
+            # terminate early if the classifier predicts the data 100% correctly
+            if incorrect_count == 0:
+                break
+
+        return self
+
+    def predict_proba(self, X):
+        '''
+        X : test data feature matrix
+        '''
+
+        probabilities = np.zeros((len(X),2))
+        sum_weight = 0
+
+        for classifierInfo in self.base_classifiers:
+            weight = classifierInfo['weight']
+            sum_weight += weight
+
+            # predict the probabilities using the previously trained base classifier
+            base_probabilities = classifierInfo['classifier'].predict_proba(X)
+
+            # calculate sum of weighted probabilities
+            for i in range(0, len(X)):
+                probabilities[i] += base_probabilities[i] * weight
+
+        for i in range(0, len(X)):
+            # get the average probabilities
+            probabilities[i] /= sum_weight
+
+            # normalize the probabilities
+            sum_row = 0
+            for j in range(0, len(base_probabilities[0])):
+                sum_row += probabilities[i][j]
+            probabilities[i] /= sum_row
+
+        return probabilities
+
+def predict(num_of_classifers, classifer, train_feature, train_outcome, test_feature, output, file_name):
     number_of_classifiers = num_of_classifers
     classifier_list = []
     for i in range(number_of_classifiers):
@@ -195,10 +286,13 @@ def predict(num_of_classifers, classifer, train_feature, train_outcome, test_fea
     # output the csv file
     output['prediction'] = pd.Series(predictions, index=output.index)
     output.drop('index', 1)
-    output.to_csv(file_path + 'prediction.csv', sep=',', index=False, header=True, columns=['bidder_id', 'prediction'])
+    output.to_csv(file_path + file_name + '.csv', sep=',', index=False, header=True, columns=['bidder_id', 'prediction'])
 
 
 if __name__ == "__main__":
     file_path = '/Users/Xu/PycharmProjects/untitled/localData/'
     train_feature, train_outcome, test_feature, output = data_cleaning(file_path)
-    predict(5, RandomForestClassifierTest(n_estimators=100), train_feature, train_outcome, test_feature, output)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        predict(5, RandomForestClassifierTest(n_estimators=100), train_feature, train_outcome, test_feature, output, 'prediction_random_forest')
+        predict(5, AdaboostClassifier(max_run=100), train_feature, train_outcome, test_feature, output, 'prediction_adaboost')
