@@ -63,7 +63,12 @@ def data_cleaning(file_path):
 
     'address_rare_address', 'address_infrequent_address',
 
-    'payment_account_rare_account', 'payment_account_infrequent_account', 'only_one_user'
+    'payment_account_rare_account', 'payment_account_infrequent_account', 'only_one_user',
+
+    #
+    'short', 't_until_end_median', 't_since_start_median', 'dt_others_median', 'f_dt_others_lt_cutoff',
+    'dt_self_median', 'dt_self_min', 'balance', 's_monday', 's_tuesday', 's_wednesday'
+
                          ]]
 
     '''
@@ -152,9 +157,9 @@ class RandomForestClassifierTest:
         for tree in self.estimators:
             all_proba.append(tree.predict_proba(X))
 
-        proba = all_proba[0]
-        for j in range(1, len(all_proba)):
-            proba += all_proba[j]
+        proba = 0
+        for k in range(0, len(all_proba)):
+            proba += all_proba[k]
 
         proba /= len(self.estimators)
         return proba
