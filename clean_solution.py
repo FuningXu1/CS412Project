@@ -231,7 +231,10 @@ class AdaboostClassifier:
                 weights[j] /= sum_new_weights
 
             # calculate classifier weight
-            classifier_weight = np.log((1 - error_rate) / error_rate)
+            if error_rate != 0:
+                classifier_weight = np.log((1 - error_rate) / error_rate)
+            else:
+                classifier_weight = 1
 
             # save classifier info for later use
             self.base_classifiers.append({'classifier': classifier, 'weight': classifier_weight})
